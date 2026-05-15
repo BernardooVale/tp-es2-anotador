@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
 <title>Anotador de smells aparentes — TP ES2</title>
 <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'&gt;&lt;rect width='16' height='16' rx='3' fill='%23ffb02e'/&gt;&lt;/svg&gt;">
 <link rel="stylesheet" href="style.css"></head>
 <body>
 
-<!-- tela de selecao de pesquisador -->
+<!-- 1. selecao de pesquisador -->
 <div class="tela-inicio" id="telaInicio">
   <div class="marca">TP · Engenharia de Software II</div>
   <h1>Anotação de smells aparentes</h1>
@@ -16,33 +17,66 @@
     Cada exemplo é um trecho de código real sinalizado por um detector como um
     code smell. Sua tarefa: decidir se é um <b>smell real</b> (deveria ser
     refatorado) ou um <b>smell aparente</b> (parece o smell, mas é código
-    legítimo). Selecione seu nome para começar — o progresso é salvo
-    automaticamente neste navegador.
+    legítimo). As anotações são salvas em um repositório privado no GitHub —
+    você continua de onde parou em qualquer máquina.
   </p>
   <div class="cartoes" id="cartoes"></div>
-  <div class="importar-area">
-    Trocou de máquina? <label for="inpImport">Importar anotações de um arquivo</label>
-    <input type="file" id="inpImport" accept=".json" hidden>
-  </div>
 </div>
 
-<!-- aplicacao -->
+<!-- 2. token de acesso -->
+<div class="tela-inicio tela-token" id="telaToken" style="display:none">
+  <div class="marca">acesso ao repositório privado</div>
+  <h1 id="tokNome">—</h1>
+  <p class="sub">
+    Para ler e gravar as anotações no repositório privado
+    <code>tp-es2-dataset</code>, cole um <b>token de acesso pessoal</b> do
+    GitHub. Ele fica salvo só neste navegador — nunca é enviado para o código
+    nem para o repositório.
+  </p>
+  <div class="campo-token">
+    <input type="password" id="inpToken" placeholder="ghp_… cole seu token aqui"
+           autocomplete="off" spellcheck="false">
+    <button class="btn primario" id="btnEntrar">Entrar</button>
+  </div>
+  <div class="erro-token" id="erroToken"></div>
+  <details class="ajuda-token">
+    <summary>Como criar o token (1 minuto)</summary>
+    <ol>
+      <li>Abra <a href="https://github.com/settings/tokens/new" target="_blank"
+          rel="noopener">github.com/settings/tokens/new</a> (token clássico).</li>
+      <li>Note: <code>anotador smells TP</code>. Expiração: 90 dias.</li>
+      <li>Marque o escopo <b><code>repo</code></b> (acesso a repositórios privados).</li>
+      <li>Clique <b>Generate token</b> e copie o valor <code>ghp_…</code>.</li>
+      <li>Cole acima. (O Gustavo precisa ter te adicionado como colaborador do
+          repositório <code>tp-es2-dataset</code>.)</li>
+    </ol>
+  </details>
+  <button class="btn voltar" id="btnVoltarNome">← escolher outro nome</button>
+</div>
+
+<!-- overlay de carregamento -->
+<div class="overlay" id="overlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="overlay-msg" id="overlayMsg">Carregando…</div>
+</div>
+
+<!-- 3. aplicacao -->
 <div class="app" id="app">
   <header>
     <span class="marca">smell<b>·</b>anotador</span>
     <span class="quem">pesquisador: <b id="hdNome">—</b></span>
     <span class="quem" id="hdBloco">blocos —</span>
+    <span class="sync" id="sync" title="estado da sincronização">●</span>
     <span class="espaco"></span>
     <div class="progresso">
       <span class="num" id="hdProg"><b>0</b> / 0</span>
       <span class="barra"><i id="hdBarra"></i></span>
     </div>
-    <button class="btn primario" id="btnExport">Exportar ↓</button>
+    <button class="btn" id="btnExport" title="baixar cópia local de segurança">Backup ↓</button>
     <button class="btn" id="btnTrocar">Trocar</button>
   </header>
 
   <div class="corpo">
-    <!-- coluna do codigo -->
     <div class="col-codigo">
       <div class="meta" id="meta"></div>
       <div class="codigo-wrap">
@@ -50,8 +84,6 @@
         <pre class="codigo"><code id="codigo" class="language-python"></code></pre>
       </div>
     </div>
-
-    <!-- coluna de anotacao -->
     <div class="col-painel">
       <div class="painel-int" id="painel"></div>
       <div class="nav">
@@ -93,7 +125,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
-<script src="examples.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

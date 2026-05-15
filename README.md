@@ -1,48 +1,42 @@
 # Anotador de smells aparentes
 
-Ferramenta web estática (sem backend) para o **movimento 3** da
-`NOTA_DADOS_NEGATIVOS` — revisão manual do seed de smells aparentes.
-Cada um dos 3 pesquisadores rotula seus exemplos; o progresso fica salvo no
-navegador; ao final cada um exporta um JSON que é mesclado por
-`mesclar_anotacoes.py`.
+Ferramenta web para o **movimento 3** da `NOTA_DADOS_NEGATIVOS` — revisão
+manual do seed de smells aparentes (TP Engenharia de Software II).
 
-## Arquivos
+As anotações são lidas e gravadas **automaticamente** num repositório privado
+do GitHub. Cada pesquisador continua de onde parou em qualquer máquina.
 
-| Arquivo | O que é |
-|---|---|
-| `index.html` `style.css` `app.js` | a aplicação |
-| `examples.js` | os 1356 exemplos, gerados por `../gerar_anotador.py` |
+## Arquitetura — dois repositórios
 
-`examples.js` é regenerável: `python3 ../gerar_anotador.py`.
+| Repositório | Visibilidade | Conteúdo |
+|---|---|---|
+| `tp-es2-anotador` | público | só o app (`index.html`, `style.css`, `app.js`) — nenhum dado |
+| `tp-es2-dataset` | **privado** | `examples.json` (os 1356 exemplos) + `anotacoes/anotacoes_<nome>.json` |
 
-## Como hospedar (GitHub Pages)
+O app é servido por GitHub Pages (público, mas sem dados). Os dados ficam no
+repo privado; o app os acessa com o **token pessoal** de cada revisor. Nada
+sensível é exposto.
 
-1. Subir o conteúdo desta pasta para a raiz de um repositório **público**.
-2. Settings → Pages → Branch `main` / `/ (root)` → Save.
-3. A URL `https://<usuario>.github.io/<repo>/` é o que o trio acessa.
+## Setup inicial (Gustavo, uma vez)
 
-Funciona também localmente: `python3 -m http.server` nesta pasta e abrir
-`http://localhost:8000` (abrir o `index.html` direto por `file://` também
-funciona — os dados estão embutidos em `examples.js`, não há `fetch`).
+1. O repo privado `tp-es2-dataset` já existe com `examples.json`.
+2. Adicionar Bernardo e Felipe como **colaboradores**:
+   `tp-es2-dataset` → Settings → Collaborators → Add people.
+3. Mandar a URL do app (GitHub Pages do `tp-es2-anotador`) para os dois.
 
-## Como anotar (cada pesquisador)
+## Como cada pesquisador anota
 
-1. Abrir a URL, **selecionar seu nome**. Você recebe seus ~900 exemplos
-   (2 blocos). O progresso é salvo automaticamente neste navegador.
-2. Para cada exemplo, preencher:
-   - **veredicto** (teclas `1`/`2`/`3`): aparente · real · incerto
-   - **confiança**: alta · média · baixa
-   - **contexto suficiente?**: sim · não — mede a limitação L3 da NOTA
-   - **justificativa**: obrigatória para `real`/`incerto`, opcional p/ `aparente`
-   - **motivo** (só se `real`): por que estava sinalizado/suprimido
-3. Teclas: `1/2/3` veredicto · `← →` navegar · `N` próximo vazio · `Esc` sair do texto.
-4. **Exportar** (botão no topo) gera `anotacoes_<nome>.json` — fazer isso
-   periodicamente e ao terminar; enviar ao Gustavo / comitar no repositório.
-5. Trocou de máquina? "Importar anotações" na tela inicial restaura o progresso.
+1. Abrir a URL do app, **selecionar seu nome**.
+2. Na primeira vez, colar um **token de acesso pessoal** do GitHub
+   (instruções na própria tela). O token fica salvo só no navegador.
+   Resumo: github.com/settings/tokens/new → escopo `repo` → gerar → copiar.
+3. Anotar. Cada exemplo: veredicto (`1`/`2`/`3`), confiança, contexto
+   suficiente, justificativa e (se `real`) motivo.
+4. O chip no topo mostra o estado da sincronização (● sincronizado).
+   Tudo é gravado sozinho no repo privado — não precisa exportar nada.
+5. Teclas: `1/2/3` veredicto · `← →` navegar · `N` próximo vazio.
 
 ## Esquema de revisão dupla
-
-Cada exemplo é anotado por 2 pesquisadores (revisão dupla de 100% do seed):
 
 | Bloco | Revisores | Exemplos |
 |---|---|---|
@@ -50,11 +44,23 @@ Cada exemplo é anotado por 2 pesquisadores (revisão dupla de 100% do seed):
 | 2 | Gustavo + Felipe | 452 |
 | 3 | Bernardo + Felipe | 449 |
 
-Cada pessoa anota 2 blocos (~900). Permite medir Cohen's kappa entre os
-revisores — número que vai para o relatório (NOTA §4, L1/L2).
+Cada pessoa anota 2 blocos (~900). Cada exemplo recebe 2 anotações
+independentes → permite medir Cohen's kappa.
 
-## Depois
+## Fechar a revisão
 
-Juntar os 3 `anotacoes_*.json` (na pasta `dados_negativos/anotacoes/` ou ao
-lado dos scripts) e rodar `python3 ../mesclar_anotacoes.py` → gera
-`seed_revisado.jsonl`, o kappa por par e a lista de conflitos a adjudicar.
+Quando todos terminarem, clonar o repo privado e mesclar:
+
+```
+git clone https://github.com/Gronoxx/tp-es2-dataset
+cp tp-es2-dataset/anotacoes/anotacoes_*.json dados_negativos/anotacoes/
+python3 dados_negativos/mesclar_anotacoes.py
+```
+
+→ gera `seed_revisado.jsonl`, o kappa por par e a lista de conflitos.
+
+## Desenvolvimento
+
+`examples.json` é gerado por `../gerar_anotador.py` e versionado no repo
+privado. Para atualizar o app, editar os arquivos aqui e dar push no
+`tp-es2-anotador`.
