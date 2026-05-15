@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anotador de smells aparentes — TP ES2</title>
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'&gt;&lt;rect width='16' height='16' rx='3' fill='%23ffb02e'/&gt;&lt;/svg&gt;">
+<link rel="stylesheet" href="style.css"></head>
+<body>
+
+<!-- tela de selecao de pesquisador -->
+<div class="tela-inicio" id="telaInicio">
+  <div class="marca">TP · Engenharia de Software II</div>
+  <h1>Anotação de smells aparentes</h1>
+  <p class="sub">
+    Cada exemplo é um trecho de código real sinalizado por um detector como um
+    code smell. Sua tarefa: decidir se é um <b>smell real</b> (deveria ser
+    refatorado) ou um <b>smell aparente</b> (parece o smell, mas é código
+    legítimo). Selecione seu nome para começar — o progresso é salvo
+    automaticamente neste navegador.
+  </p>
+  <div class="cartoes" id="cartoes"></div>
+  <div class="importar-area">
+    Trocou de máquina? <label for="inpImport">Importar anotações de um arquivo</label>
+    <input type="file" id="inpImport" accept=".json" hidden>
+  </div>
+</div>
+
+<!-- aplicacao -->
+<div class="app" id="app">
+  <header>
+    <span class="marca">smell<b>·</b>anotador</span>
+    <span class="quem">pesquisador: <b id="hdNome">—</b></span>
+    <span class="quem" id="hdBloco">blocos —</span>
+    <span class="espaco"></span>
+    <div class="progresso">
+      <span class="num" id="hdProg"><b>0</b> / 0</span>
+      <span class="barra"><i id="hdBarra"></i></span>
+    </div>
+    <button class="btn primario" id="btnExport">Exportar ↓</button>
+    <button class="btn" id="btnTrocar">Trocar</button>
+  </header>
+
+  <div class="corpo">
+    <!-- coluna do codigo -->
+    <div class="col-codigo">
+      <div class="meta" id="meta"></div>
+      <div class="codigo-wrap">
+        <div class="gutter" id="gutter"></div>
+        <pre class="codigo"><code id="codigo" class="language-python"></code></pre>
+      </div>
+    </div>
+
+    <!-- coluna de anotacao -->
+    <div class="col-painel">
+      <div class="painel-int" id="painel"></div>
+      <div class="nav">
+        <span class="pos">
+          <button class="btn" id="btnPrev">←</button>
+          <button class="btn" id="btnNext">→</button>
+        </span>
+        <span class="pos">#<input type="number" id="inpIr" min="1"> / <b id="posTotal">0</b></span>
+        <span class="espaco"></span>
+        <span class="estado-anot vazio" id="estadoAnot">não anotado</span>
+        <button class="btn primario" id="btnProxVazio">Vazio →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimapa-wrap">
+    <div class="minimapa-cab" id="miniCab">
+      <span id="miniResumo">▸ mapa de progresso</span>
+      <span class="leg">
+        <span><i style="background:#4ec9a8"></i>aparente</span>
+        <span><i style="background:#e5575c"></i>real</span>
+        <span><i style="background:#9a8cff"></i>incerto</span>
+        <span><i style="background:#ffb02e"></i>parcial</span>
+        <span><i style="border:1px solid #3c4150"></i>vazio</span>
+      </span>
+    </div>
+    <div class="minimapa" id="minimapa"></div>
+  </div>
+
+  <div class="dica-teclas">
+    <span><b>1</b> aparente · <b>2</b> real · <b>3</b> incerto</span>
+    <span><b>← →</b> navegar</span>
+    <span><b>N</b> próximo vazio</span>
+    <span><b>Esc</b> sair do texto</span>
+    <span style="margin-left:auto;color:var(--text-dim)" id="dicaSalvo"></span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="examples.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
