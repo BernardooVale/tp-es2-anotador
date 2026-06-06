@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Sonda de qualidade dos pares — TP ES2</title>
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'&gt;&lt;rect width='16' height='16' rx='3' fill='%234ec9a8'/&gt;&lt;/svg&gt;">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* específico desta página: dois painéis de código (antes/depois) empilhados */
+  .par-wrap { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
+  .par-bloco { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+  .par-rotulo { font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+                color: var(--text-dim); margin: 0 0 4px 2px; display: flex; gap: 8px; align-items: center; }
+  .par-rotulo.antes b { color: #e5575c; }
+  .par-rotulo.depois b { color: #4ec9a8; }
+  .par-bloco .codigo-wrap { flex: 1; min-height: 80px; }
+  .crit-falho { margin-top: 6px; }
+  .demo-aviso { background: #ffb02e22; border: 1px solid #ffb02e88; color: #ffb02e;
+                padding: 6px 12px; border-radius: 6px; font-size: 13px; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+
+<!-- 1. selecao de pesquisador -->
+<div class="tela-inicio" id="telaInicio">
+  <div class="marca">TP · Engenharia de Software II</div>
+  <h1>Sonda de qualidade dos pares</h1>
+  <p class="sub">
+    Cada item é um par <b>antes → depois</b> de uma refatoração minerada. Sua
+    tarefa: decidir se é uma <b>refatoração genuína</b> (o <i>before</i> tem o
+    smell, o <i>after</i> resolve, e o comportamento é preservado até onde o diff
+    mostra) ou <b>lixo</b> (falha em qualquer um desses). É uma amostra pequena —
+    você e o Felipe anotam os mesmos pares, às cegas, para medir a precisão da
+    classe positiva e calibrar o proxy automático.
+  </p>
+  <div class="cartoes" id="cartoes"></div>
+</div>
+
+<!-- 2. token de acesso -->
+<div class="tela-inicio tela-token" id="telaToken" style="display:none">
+  <div class="marca">acesso ao repositório privado</div>
+  <h1 id="tokNome">—</h1>
+  <p class="sub">
+    Para ler a amostra e gravar suas anotações no repositório privado
+    <code>tp-es2-dataset</code>, cole um <b>token de acesso pessoal</b> do
+    GitHub. Ele fica salvo só neste navegador — nunca é enviado para o código
+    nem para o repositório.
+  </p>
+  <div class="campo-token">
+    <input type="password" id="inpToken" placeholder="ghp_… cole seu token aqui"
+           autocomplete="off" spellcheck="false">
+    <button class="btn primario" id="btnEntrar">Entrar</button>
+  </div>
+  <div class="erro-token" id="erroToken"></div>
+  <details class="ajuda-token">
+    <summary>Como criar o token (1 minuto)</summary>
+    <ol>
+      <li>Abra <a href="https://github.com/settings/tokens/new" target="_blank"
+          rel="noopener">github.com/settings/tokens/new</a> (token clássico).</li>
+      <li>Note: <code>sonda qualidade TP</code>. Expiração: 90 dias.</li>
+      <li>Marque o escopo <b><code>repo</code></b> (acesso a repositórios privados).</li>
+      <li>Clique <b>Generate token</b> e copie o valor <code>ghp_…</code>.</li>
+      <li>Cole acima. (O Gustavo precisa ter te adicionado como colaborador do
+          repositório <code>tp-es2-dataset</code>.)</li>
+    </ol>
+  </details>
+  <button class="btn voltar" id="btnVoltarNome">← escolher outro nome</button>
+</div>
+
+<!-- overlay de carregamento -->
+<div class="overlay" id="overlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="overlay-msg" id="overlayMsg">Carregando…</div>
+</div>
+
+<!-- 3. aplicacao -->
+<div class="app" id="app">
+  <header>
+    <span class="marca">qualidade<b>·</b>pares</span>
+    <span class="quem">pesquisador: <b id="hdNome">—</b></span>
+    <span class="sync" id="sync" title="estado da sincronização">●</span>
+    <span class="espaco"></span>
+    <div class="progresso">
+      <span class="num" id="hdProg"><b>0</b> / 0</span>
+      <span class="barra"><i id="hdBarra"></i></span>
+    </div>
+    <button class="btn" id="btnExport" title="baixar cópia local de segurança">Backup ↓</button>
+    <button class="btn" id="btnTrocar">Trocar</button>
+  </header>
+
+  <div class="corpo">
+    <div class="col-codigo">
+      <div class="demo-aviso" id="demoAviso" style="display:none">
+        modo demonstração — amostra de exemplo, sem gravação. Anote de verdade entrando com seu nome + token.
+      </div>
+      <div class="meta" id="meta"></div>
+      <div class="par-wrap">
+        <div class="par-bloco">
+          <div class="par-rotulo antes"><b>● Antes</b> (deve conter o smell)</div>
+          <div class="codigo-wrap">
+            <div class="gutter" id="gutterA"></div>
+            <pre class="codigo"><code id="codigoA" class="language-python"></code></pre>
+          </div>
+        </div>
+        <div class="par-bloco">
+          <div class="par-rotulo depois"><b>● Depois</b> (deve resolver o smell, sem mudar comportamento)</div>
+          <div class="codigo-wrap">
+            <div class="gutter" id="gutterD"></div>
+            <pre class="codigo"><code id="codigoD" class="language-python"></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-painel">
+      <div class="painel-int" id="painel"></div>
+      <div class="nav">
+        <span class="pos">
+          <button class="btn" id="btnPrev">←</button>
+          <button class="btn" id="btnNext">→</button>
+        </span>
+        <span class="pos">#<input type="number" id="inpIr" min="1"> / <b id="posTotal">0</b></span>
+        <span class="espaco"></span>
+        <span class="estado-anot vazio" id="estadoAnot">não anotado</span>
+        <button class="btn primario" id="btnProxVazio">Vazio →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimapa-wrap">
+    <div class="minimapa-cab" id="miniCab">
+      <span id="miniResumo">▸ mapa de progresso</span>
+      <span class="leg">
+        <span><i style="background:#4ec9a8"></i>genuína</span>
+        <span><i style="background:#e5575c"></i>lixo</span>
+        <span><i style="background:#9a8cff"></i>incerto</span>
+        <span><i style="border:1px solid #3c4150"></i>vazio</span>
+      </span>
+    </div>
+    <div class="minimapa" id="minimapa"></div>
+  </div>
+
+  <div class="dica-teclas">
+    <span><b>1</b> genuína · <b>2</b> lixo · <b>3</b> incerto</span>
+    <span><b>← →</b> navegar</span>
+    <span><b>N</b> próximo vazio</span>
+    <span><b>Esc</b> sair do texto</span>
+    <span style="margin-left:auto;color:var(--text-dim)" id="dicaSalvo"></span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="qualidade.js"></script>
+</body>
+</html>

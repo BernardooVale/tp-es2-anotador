@@ -1,0 +1,38 @@
+[
+  {
+    "id": "r1_demo_0001",
+    "smell": "R1",
+    "before": "def processar(pedido):\n    total = 0\n    for item in pedido.itens:\n        total += item.preco * item.qtd\n    if pedido.cupom:\n        if pedido.cupom.tipo == 'percentual':\n            total -= total * pedido.cupom.valor / 100\n        else:\n            total -= pedido.cupom.valor\n    pedido.total = total\n    enviar_email(pedido.cliente, total)\n    registrar_log(pedido.id, total)\n    return total",
+    "after": "def _calcular_total(pedido):\n    total = sum(i.preco * i.qtd for i in pedido.itens)\n    if pedido.cupom:\n        if pedido.cupom.tipo == 'percentual':\n            total -= total * pedido.cupom.valor / 100\n        else:\n            total -= pedido.cupom.valor\n    return total\n\n\ndef processar(pedido):\n    total = _calcular_total(pedido)\n    pedido.total = total\n    enviar_email(pedido.cliente, total)\n    registrar_log(pedido.id, total)\n    return total",
+    "ast_pattern_match": true,
+    "repo": "exemplo/projeto",
+    "file": "loja/pedidos.py",
+    "function_name": "processar",
+    "commit_hash": "0000aaa",
+    "source": "rule_id_mined"
+  },
+  {
+    "id": "r3_demo_0002",
+    "smell": "R3",
+    "before": "def expira(criado_em):\n    return criado_em + 86400 > agora()",
+    "after": "def expira(criado_em):\n    return criado_em + SEGUNDOS_POR_DIA > agora()",
+    "ast_pattern_match": false,
+    "repo": "exemplo/projeto",
+    "file": "auth/sessao.py",
+    "function_name": "expira",
+    "commit_hash": "0000bbb",
+    "source": "rule_id_mined"
+  },
+  {
+    "id": "r4_demo_0003",
+    "smell": "R4",
+    "before": "def aplicar(user, recurso):\n    if user is not None:\n        if user.ativo:\n            if recurso.publico or user.tem_acesso(recurso):\n                return recurso.abrir()\n            else:\n                raise Negado()\n        else:\n            raise Inativo()\n    else:\n        raise SemUsuario()",
+    "after": "def aplicar(user, recurso):\n    if user is None:\n        raise SemUsuario()\n    if not user.ativo:\n        raise Inativo()\n    if not (recurso.publico or user.tem_acesso(recurso)):\n        raise Negado()\n    return recurso.abrir()",
+    "ast_pattern_match": true,
+    "repo": "exemplo/projeto",
+    "file": "acl/guarda.py",
+    "function_name": "aplicar",
+    "commit_hash": "0000ccc",
+    "source": "mined_commit"
+  }
+]
