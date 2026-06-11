@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Sessão de adjudicação (consenso) — TP ES2</title>
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'&gt;&lt;rect width='16' height='16' rx='3' fill='%23ffb02e'/&gt;&lt;/svg&gt;">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ===== específico da sessão de consenso ===== */
+  .col-codigo { display: flex; flex-direction: column; min-height: 0; }
+
+  /* diff lado a lado */
+  .diff-toolbar { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px;
+                  font-size: 12px; color: var(--text-dim); }
+  .diff-toolbar .leg span { margin-right: 10px; }
+  .diff-toolbar .leg i { display: inline-block; width: 10px; height: 10px;
+                         border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .diff-wrap { flex: 1; min-height: 120px; overflow: auto; border: 1px solid var(--border, #3c4150);
+               border-radius: 8px; background: var(--bg-cod, #14161c); }
+  table.diff { border-collapse: collapse; width: 100%;
+               font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  table.diff td { padding: 0 8px; vertical-align: top; white-space: pre; }
+  table.diff td.ln { color: #5b6170; text-align: right; user-select: none; min-width: 34px;
+                     border-right: 1px solid #262a33; position: sticky; }
+  table.diff td.cd { width: 50%; }
+  table.diff td.cd code { background: none; padding: 0; }
+  tr.d-eq  td.cd { color: var(--text, #d6d8de); }
+  tr.d-del td:nth-child(-n+2) { background: #e5575c1f; }
+  tr.d-ins td:nth-child(n+3)  { background: #4ec9a81f; }
+  tr.d-mod td:nth-child(-n+2) { background: #e5575c1f; }
+  tr.d-mod td:nth-child(n+3)  { background: #4ec9a81f; }
+  tr.d-skip td { text-align: center; color: #8a91a3; background: #1b1e26; cursor: pointer;
+                 padding: 3px 0; font-size: 11px; border-top: 1px dashed #2c3140;
+                 border-bottom: 1px dashed #2c3140; white-space: normal; }
+  tr.d-skip td:hover { color: var(--text, #d6d8de); }
+  .diff-vazio { padding: 8px 12px; color: #8a91a3; font-size: 12px; }
+
+  /* rodada 1 + auditoria no painel */
+  .r1-bloco { background: #ffffff08; border: 1px solid #3c4150; border-radius: 6px;
+              padding: 6px 10px; margin: 4px 0; }
+  .r1-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+  .r1-just { font-size: 12px; color: var(--text-dim); margin-top: 3px; white-space: pre-wrap; }
+  .mini-ver { padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .mini-ver.v-real { background: #4ec9a833; color: #4ec9a8; }
+  .mini-ver.v-aparente { background: #e5575c33; color: #e5575c; }
+  .mini-ver.v-incerto { background: #9a8cff33; color: #9a8cff; }
+  details.aud { margin: 6px 0; border: 1px solid #3c4150; border-radius: 6px; }
+  details.aud summary { cursor: pointer; padding: 6px 10px; font-size: 12px; color: var(--text-dim); }
+  details.aud .aud-corpo { padding: 4px 10px 8px; }
+
+  /* tags estruturadas */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+  .tag { font-size: 11px; padding: 2px 9px; border-radius: 999px; cursor: pointer;
+         border: 1px solid #3c4150; color: var(--text-dim); user-select: none; }
+  .tag:hover { border-color: #8a91a3; }
+  .tag.on { background: #ffb02e22; border-color: #ffb02e; color: #ffb02e; font-weight: 600; }
+
+  /* no style.css "v-real" é vermelho (smell real = ruim); aqui genuína = bom.
+     Override local para o semáforo fazer sentido nesta página. */
+  .opc.v-real[data-sel="1"]     { border-color: #4ec9a8; background: #4ec9a81a; }
+  .opc.v-aparente[data-sel="1"] { border-color: #e5575c; background: #e5575c1a; }
+
+  .chip.tipo-incerto { background: #9a8cff22; border-color: #9a8cff88; color: #9a8cff; }
+  .chip.tipo-desacordo { background: #ffb02e22; border-color: #ffb02e88; color: #ffb02e; }
+  .auto-aviso { margin-top: 6px; font-size: 12px; color: #ffb02e;
+                background: #ffb02e14; border: 1px solid #ffb02e55;
+                border-radius: 6px; padding: 4px 9px; }
+  .btn.mini { font-size: 11px; padding: 1px 8px; margin-left: 6px; }
+  .demo-aviso { background: #ffb02e22; border: 1px solid #ffb02e88; color: #ffb02e;
+                padding: 6px 12px; border-radius: 6px; font-size: 13px; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+
+<!-- 1. quem está no teclado -->
+<div class="tela-inicio" id="telaInicio">
+  <div class="marca">TP · Engenharia de Software II</div>
+  <h1>Sessão de adjudicação — consenso</h1>
+  <p class="sub">
+    Rodada 2 da sonda: vocês dois, <b>juntos</b>, decidem os pares disputados da
+    rodada 1 (incertos de Gustavo + desacordos decididos) com a régua dos dois
+    eixos — <a href="GUIA_EIXOS.html" target="_blank" rel="noopener">guia
+    didático ↗</a>. O resultado grava em
+    <code>qualidade/qualidade_consenso.json</code>; os pares concordantes da
+    rodada 1 entram pré-preenchidos. Os dois podem abrir esta página ao mesmo
+    tempo: o app puxa e mescla as alterações do parceiro a cada 30&nbsp;s.
+    Escolha abaixo <b>quem está no teclado</b> (só define qual token usar).
+  </p>
+  <div class="cartoes" id="cartoes"></div>
+</div>
+
+<!-- 2. token -->
+<div class="tela-inicio tela-token" id="telaToken" style="display:none">
+  <div class="marca">acesso ao repositório privado</div>
+  <h1 id="tokNome">—</h1>
+  <p class="sub">
+    Cole o mesmo <b>token pessoal</b> usado na sonda (escopo <code>repo</code>).
+    Ele fica salvo só neste navegador.
+  </p>
+  <div class="campo-token">
+    <input type="password" id="inpToken" placeholder="ghp_… cole seu token aqui"
+           autocomplete="off" spellcheck="false">
+    <button class="btn primario" id="btnEntrar">Entrar</button>
+  </div>
+  <div class="erro-token" id="erroToken"></div>
+  <button class="btn voltar" id="btnVoltarNome">← escolher outro nome</button>
+</div>
+
+<!-- overlay -->
+<div class="overlay" id="overlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="overlay-msg" id="overlayMsg">Carregando…</div>
+</div>
+
+<!-- 3. app -->
+<div class="app" id="app">
+  <header>
+    <span class="marca">consenso<b>·</b>pares</span>
+    <span class="quem"><b id="hdNome">—</b></span>
+    <span class="sync" id="sync" title="estado da sincronização">●</span>
+    <span class="espaco"></span>
+    <div class="progresso">
+      <span class="num" id="hdProg"><b>0</b> / 0</span>
+      <span class="barra"><i id="hdBarra"></i></span>
+    </div>
+    <button class="btn" id="btnPull" title="puxar e mesclar o que o parceiro gravou">↻ Parceiro</button>
+    <button class="btn" id="btnExport" title="baixar cópia local do consenso">Backup ↓</button>
+  </header>
+
+  <div class="corpo">
+    <div class="col-codigo">
+      <div class="demo-aviso" id="demoAviso" style="display:none">
+        modo demonstração — pauta sintética, sem gravação.
+      </div>
+      <div class="meta" id="meta"></div>
+      <div class="diff-toolbar">
+        <span class="leg">
+          <span><i style="background:#e5575c55"></i>before (removido/alterado)</span>
+          <span><i style="background:#4ec9a855"></i>after (incluído/alterado)</span>
+        </span>
+        <span class="espaco" style="flex:1"></span>
+        <button class="btn mini" id="btnDiffModo">ver código completo</button>
+      </div>
+      <div class="diff-wrap">
+        <div class="diff-vazio" id="diffVazio" style="display:none">
+          before e after idênticos linha a linha (diferença pode estar fora do snippet).
+        </div>
+        <table class="diff"><tbody id="diffBody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="col-painel">
+      <div class="painel-int">
+        <div class="secao-rot">rodada 1 (contexto)</div>
+        <div id="rodada1"></div>
+        <details class="aud" id="auditoria">
+          <summary>⚖️ 3ª opinião (auditoria) — abrir só depois das posições de vocês</summary>
+          <div class="aud-corpo" id="audCorpo"></div>
+        </details>
+        <div id="painel"></div>
+      </div>
+      <div class="nav">
+        <span class="pos">
+          <button class="btn" id="btnPrev">←</button>
+          <button class="btn" id="btnNext">→</button>
+        </span>
+        <span class="pos">#<input type="number" id="inpIr" min="1"> / <b id="posTotal">0</b></span>
+        <span class="espaco"></span>
+        <span class="estado-anot vazio" id="estadoAnot">não decidido</span>
+        <button class="btn primario" id="btnProxVazio">Pendente →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimapa-wrap">
+    <div class="minimapa-cab">
+      <span>pauta da sessão</span>
+      <span class="leg">
+        <span><i style="background:#4ec9a8"></i>genuína</span>
+        <span><i style="background:#e5575c"></i>lixo</span>
+        <span><i style="background:#9a8cff"></i>incerto</span>
+        <span><i style="border:1px solid #3c4150"></i>pendente</span>
+      </span>
+    </div>
+    <div class="minimapa" id="minimapa"></div>
+  </div>
+
+  <div class="dica-teclas">
+    <span><b>1</b> genuína · <b>2</b> lixo · <b>3</b> incerto</span>
+    <span><b>← →</b> navegar</span>
+    <span><b>N</b> próximo pendente</span>
+    <span><b>Esc</b> sair do texto</span>
+    <span style="margin-left:auto">
+      <a href="GUIA_EIXOS.html" target="_blank" rel="noopener">guia dos eixos ↗</a>
+    </span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="consenso.js"></script>
+</body>
+</html>
