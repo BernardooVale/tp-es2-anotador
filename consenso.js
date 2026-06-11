@@ -45,6 +45,12 @@ const CRITERIOS = [
   { v: 'before_sem_smell', rot: 'O before não tinha o smell (Eixo B)' },
   { v: 'outro', rot: 'Outro — fora de escopo, bug disfarçado etc.' },
 ];
+// multipla escolha; o legado `criterio` (singular, rodada 1) e espelhado como
+// criterios[0] na escrita e absorvido na leitura
+function getCriterios(a) {
+  if (Array.isArray(a && a.criterios)) return a.criterios;
+  return a && a.criterio ? [a.criterio] : [];
+}
 const TAGS = [
   { v: 'A1_assinatura', rot: 'A1 assinatura/contrato' },
   { v: 'A2_simbolo_indefinido', rot: 'A2 símbolo indefinido' },
@@ -160,7 +166,9 @@ function seedConcordantes(g, f) {
         + 'G: ' + (a.justificativa || '—') + ' | F: ' + (b.justificativa || '—'),
     };
     if (a.veredito === 'lixo') {
-      reg.criterio = (a.criterio && a.criterio === b.criterio) ? a.criterio : (a.criterio || b.criterio || 'outro');
+      const uniao = Array.from(new Set([a.criterio, b.criterio].filter(Boolean)));
+      reg.criterios = uniao.length ? uniao : ['outro'];
+      reg.criterio = reg.criterios[0];   // espelho legado
       reg.salvage = 'regenerar_after';   // default conservador — revisar se preciso
     }
     if (a.veredito === 'genuina') reg.salvage = 'usar_como_esta';
@@ -177,7 +185,7 @@ function precisaSnippet(par) { return SMELLS_SNIPPET.has(par.smell); }
 function completo(par, a) {
   if (!a || !a.veredito) return false;
   if (!(a.justificativa || '').trim()) return false;          // obrigatoria SEMPRE
-  if (a.veredito === 'lixo' && (!a.criterio || !a.salvage)) return false;
+  if (a.veredito === 'lixo' && (!getCriterios(a).length || !a.salvage)) return false;
   if (precisaSnippet(par) && !a.snippet_completo) return false;
   return true;
 }
@@ -466,10 +474,11 @@ function opcaoHTML(campo, valor, rot, sel, opts) {
 function renderPainel(p) {
   const a = anot[p.id] || {};
   const tags = new Set(a.tags || []);
+  const crits = new Set(getCriterios(a));
   const vered = VEREDITOS.map((o) => opcaoHTML('veredito', o.v, o.rot,
     a.veredito === o.v, { k: o.k, cls: o.cls, desc: o.desc, bloco: 1 })).join('');
   const crit = CRITERIOS.map((o) => opcaoHTML('criterio', o.v, o.rot,
-    a.criterio === o.v, { bloco: 1 })).join('');
+    crits.has(o.v), { bloco: 1 })).join('');
   const salv = SALVAGE.map((o) => opcaoHTML('salvage', o.v, o.rot,
     a.salvage === o.v, { bloco: 1 })).join('');
   const snip = SNIPPET.map((o) => opcaoHTML('snippet_completo', o.v, o.rot,
@@ -486,7 +495,8 @@ function renderPainel(p) {
       <span class="tecla">teclas 1 / 2 / 3</span></div>
     <div class="opcoes">${vered}</div>
     <div class="condicional ${ehLixo ? 'visivel' : ''}">
-      <div class="secao-rot">critério dominante <span class="obrig">*</span></div>
+      <div class="secao-rot">critérios que falharam <span class="obrig">*</span>
+        <span class="tecla">marque 1 ou mais</span></div>
       <div class="opcoes">${crit}</div>
       <div class="secao-rot">salvage do before <span class="obrig">*</span></div>
       <div class="opcoes">${salv}</div>
@@ -549,12 +559,22 @@ function setCampo(id, campo, valor, semRerender) {
   a[campo] = valor; a.ts = agora();
   delete a.origem;                                   // mexeu → deixa de ser automatico
   if (campo === 'veredito') {
-    if (valor === 'genuina') { delete a.criterio; a.salvage = 'usar_como_esta'; }
-    if (valor === 'incerto') { delete a.criterio; delete a.salvage; }
+    if (valor === 'genuina') { delete a.criterio; delete a.criterios; a.salvage = 'usar_como_esta'; }
+    if (valor === 'incerto') { delete a.criterio; delete a.criterios; delete a.salvage; }
     if (valor === 'lixo' && a.salvage === 'usar_como_esta') delete a.salvage;
   }
   salvarCache(); agendarSync();
   if (!semRerender) render(); else { atualizarProgresso(); renderEstado(); renderMinimapa(); }
+}
+function toggleCriterio(id, valor) {
+  const a = anot[id] || (anot[id] = {});
+  const s = new Set(getCriterios(a));
+  if (s.has(valor)) s.delete(valor); else s.add(valor);
+  a.criterios = Array.from(s);
+  a.criterio = a.criterios[0];           // espelho legado (singular)
+  if (!a.criterios.length) { delete a.criterios; delete a.criterio; }
+  a.ts = agora(); delete a.origem;
+  salvarCache(); agendarSync(); render();
 }
 function toggleTag(id, tag) {
   const a = anot[id] || (anot[id] = {});
@@ -690,6 +710,7 @@ document.addEventListener('click', (ev) => {
   if (opc) {
     const campo = opc.dataset.campo, valor = opc.dataset.valor;
     const id = AGENDA[idx].id;
+    if (campo === 'criterio') { toggleCriterio(id, valor); return; }
     const a = anot[id] || {};
     setCampo(id, campo, a[campo] === valor && campo !== 'veredito' ? undefined : valor);
     return;
