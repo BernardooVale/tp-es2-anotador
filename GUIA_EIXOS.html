@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia didático — os dois eixos no código</title>
+<style>
+:root { --ink:#1c1917; --muted:#57534e; --line:#e7e5e4; --bg:#fafaf9;
+        --ok:#15803d; --bad:#b91c1c; --warn:#b45309; }
+* { box-sizing:border-box }
+body { font:16px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink);
+       background:var(--bg); margin:0 }
+main { max-width:980px; margin:0 auto; padding:24px 20px 80px }
+h1 { font-size:1.7rem; line-height:1.25; margin:.2em 0 }
+h2 { font-size:1.3rem; margin:2.2em 0 .6em; border-bottom:2px solid var(--line); padding-bottom:.25em }
+h3 { font-size:1.08rem; margin:1.6em 0 .4em }
+p, li { max-width:78ch }
+.sub { color:var(--muted) }
+.badge { display:inline-block; padding:1px 10px; border-radius:999px; font-size:.78rem;
+         font-weight:700; color:#fff; vertical-align:middle }
+.ok   { background:var(--ok) }
+.bad  { background:var(--bad) }
+.warn { background:var(--warn) }
+.caixa { background:#fff; border:1px solid var(--line); border-radius:8px;
+         padding:14px 18px; margin:16px 0 }
+.caixa h3 { margin-top:0 }
+.duo { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+@media (max-width:760px){ .duo { grid-template-columns:1fr } }
+pre { background:#1c1917; color:#e7e5e4; padding:12px; border-radius:6px;
+      overflow-x:auto; font-size:.78rem; line-height:1.5; margin:.3em 0 }
+pre .x { background:#7f1d1d; color:#fecaca; display:inline-block; width:100% }
+pre .v { background:#14532d; color:#bbf7d0; display:inline-block; width:100% }
+pre .c { color:#a8a29e }
+.rotulo { font-size:.78rem; font-weight:700; color:var(--muted); letter-spacing:.04em }
+.como { background:#eff6ff; border:1px solid #93c5fd; border-radius:6px; padding:9px 13px;
+        margin:.6em 0; font-size:.93rem }
+.como::before { content:"🔍 Como procurar: "; font-weight:700 }
+.alerta { background:#fef3c7; border:1px solid #f59e0b; border-radius:6px; padding:9px 13px; margin:.6em 0 }
+.regra  { background:#ecfdf5; border:1px solid #10b981; border-radius:6px; padding:10px 14px; margin:.8em 0 }
+table { border-collapse:collapse; width:100%; margin:.6em 0; font-size:.9rem }
+th,td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top }
+th { background:#f5f5f4 }
+nav { font-size:.9rem; background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 16px }
+code { background:#f5f5f4; padding:1px 5px; border-radius:4px; font-size:.88em }
+</style>
+</head>
+<body><main>
+
+<h1>Os dois eixos no código — guia didático com exemplos</h1>
+<p class="sub">Companheiro do <code>CODEBOOK.md</code> e do manual de adjudicação. Todos os
+exemplos são inventados e mínimos — o objetivo é treinar o olho para reconhecer cada padrão
+nos pares reais.</p>
+
+<nav><strong>Atalhos:</strong>
+<a href="#leitura">Como ler um par</a> ·
+<a href="#eixoA">Eixo A (A1–A6)</a> ·
+<a href="#eixoB">Eixo B (R1–R5)</a> ·
+<a href="#colinha">Colinha final</a></nav>
+
+<div class="regra"><strong>A régua em uma linha:</strong> <code>genuina</code> = o after é
+<em>seguro</em> (Eixo A: nenhum chamador perceberia a troca) <strong>E</strong> é uma
+<em>boa aula</em> (Eixo B: o smell foi resolvido de verdade, e só ele foi mexido). Falhou um
+dos dois → <code>lixo</code>. <code>incerto</code> só quando o trecho não permite decidir.</div>
+
+<h2 id="leitura">0. Como ler um par (antes de qualquer eixo)</h2>
+<p>A maior parte dos nossos erros da rodada 1 veio de ler o corpo da função primeiro e formar
+opinião pela "cara" do diff. Inverta a ordem:</p>
+<ol>
+<li><strong>Linha <code>def</code> dos dois lados</strong> — parâmetros, defaults, nomes (30 segundos, pega metade dos A1).</li>
+<li><strong>Todos os <code>return</code>/<code>yield</code>/<code>raise</code> dos dois lados</strong> — o que sai da função e em que condições.</li>
+<li><strong>Nomes novos do after</strong> — cada função/constante/atributo que não existia no before: está definido no trecho?</li>
+<li>Só então leia o corpo, comparando os caminhos de execução.</li>
+</ol>
+
+<h2 id="eixoA">Eixo A — o after é seguro? (eliminatório)</h2>
+<p>Pergunta-guia: <em>"se eu trocasse o before pelo after em produção, algum chamador, log,
+teste ou usuário perceberia?"</em> Perceberia = <code>lixo / muda_comportamento</code>.</p>
+
+<div class="caixa">
+<h3>A1 — Assinatura e contrato <span class="badge bad">falha típica</span></h3>
+<div class="duo">
+<div><div class="rotulo">BEFORE</div>
+<pre>def parse_config(path, strict=True):
+    cfg, avisos = _ler(path, strict)
+    return cfg, avisos, time.time() - t0</pre></div>
+<div><div class="rotulo">AFTER</div>
+<pre><span class="x">def parse_config(path, strict=False):</span>
+    cfg, avisos = _ler(path, strict)
+<span class="x">    return cfg</span></pre></div>
+</div>
+<p>Duas quebras numa olhada: o <strong>default mudou</strong> (<code>strict=True→False</code>:
+todo chamador que não passa <code>strict</code> muda de comportamento silenciosamente) e o
+<strong>retorno encolheu</strong> (quem fazia <code>cfg, avisos, dt = parse_config(...)</code>
+agora explode com <code>TypeError</code>).</p>
+<div class="como">compare as duas linhas <code>def</code> token por token; depois liste os
+<code>return</code> de cada lado e compare <em>quantidade e estrutura</em> do que sai. Tipo
+conta: lista→generator, tupla→dict, int→Enum — tudo é contrato.</div>
+</div>
+
+<div class="caixa">
+<h3>A2 — Símbolo indefinido <span class="badge warn">no mínimo incerto</span></h3>
+<div class="duo">
+<div><div class="rotulo">BEFORE</div>
+<pre>def fechar_pedido(pedido):
+    total = 0
+    for item in pedido.itens:
+        total += item.preco * item.qtd
+    return total</pre></div>
+<div><div class="rotulo">AFTER</div>
+<pre>def fechar_pedido(pedido):
+<span class="x">    total = _somar_itens(pedido.itens)</span>
+<span class="x">    return aplicar_descontos(total, pedido.cupons)</span></pre></div>
+</div>
+<p><code>_somar_itens</code> e <code>aplicar_descontos</code> <strong>não estão definidos no
+trecho</strong> e não existiam no before. O segundo é pior: usa <code>pedido.cupons</code>, que
+o before nunca tocou — então nem dá para afirmar que o resultado é o mesmo. Sem ver esses
+corpos, o comportamento é inverificável.</p>
+<div class="como">faça a lista dos nomes que o after usa e o before não usava. Para cada um:
+a definição aparece no próprio after? Não? → o par não é autocontido. Se a chamada nova lê
+dados que o before ignorava (<code>pedido.cupons</code>), suspeite de mudança de comportamento,
+não só de incerteza.</div>
+</div>
+
+<div class="caixa">
+<h3>A3 — Curto-circuito engolindo efeito colateral <span class="badge bad">falha típica</span></h3>
+<div class="duo">
+<div><div class="rotulo">BEFORE</div>
+<pre>mudou_origem = checar_origem(inst)      <span class="c"># sempre executa</span>
+mudou_prot   = checar_protecao(inst)    <span class="c"># sempre executa</span>
+mudou = mudou_origem or mudou_prot</pre></div>
+<div><div class="rotulo">AFTER</div>
+<pre><span class="x">mudou = checar_origem(inst) or checar_protecao(inst)</span>
+<span class="c"># se checar_origem devolve True,
+# checar_protecao NUNCA roda nesta instância</span></pre></div>
+</div>
+<p>Em Python, <code>f() or g()</code> <strong>não chama <code>g()</code></strong> quando
+<code>f()</code> retorna algo verdadeiro. Se as funções têm efeito colateral (gravam, corrigem,
+logam), o after pula trabalho que o before fazia.</p>
+<div class="como">ache todo <code>or</code>/<code>and</code> novo entre <em>chamadas de
+função</em>. Pergunte: essas funções só calculam, ou também fazem algo? Se fazem, é mudança de
+comportamento. (Se forem puras, a fusão é equivalente — não rejeite por reflexo.)</div>
+</div>
+
+<div class="caixa">
+<h3>A4 — Early-return que pula o "tail" comum <span class="badge bad">a mais traiçoeira</span></h3>
+<div class="duo">
+<div><div class="rotulo">BEFORE</div>
+<pre>def calcular(pedido):
+    if pedido.tipo == "expresso":
+        total = _base(pedido) + 15
+    else:
+        total = _base(pedido)
+    <span class="c"># tail comum aos DOIS ramos:</span>
+    total *= pedido.cambio
+    registrar(total)
+    return total</pre></div>
+<div><div class="rotulo">AFTER</div>
+<pre>def calcular(pedido):
+    if pedido.tipo == "expresso":
+<span class="x">        return _total_expresso(pedido)</span>
+    total = _base(pedido)
+    total *= pedido.cambio
+    registrar(total)
+    return total</pre></div>
+</div>
+<p>O ramo "expresso" agora <strong>retorna antes do tail</strong>: não multiplica pelo câmbio e
+não registra. A extração parece limpa — e está errada (a menos que <code>_total_expresso</code>
+repita o tail, o que A2 manda verificar). Foi exatamente o padrão do r1_000001, que o próprio
+upstream corrigiu depois.</p>
+<div class="como">quando um ramo virar <code>return helper(...)</code>, olhe o que existia
+<em>depois</em> do if/else no before. Tinha código comum (multiplicação, log, acumulação,
+conversão)? Então aquele ramo perdeu esse código.</div>
+</div>
+
+<div class="caixa">
+<h3>A5 — Exceções e avisos <span class="badge bad">falha típica</span></h3>
+<div class="duo">
+<div><div class="rotulo">BEFORE</div>
+<pre>if formato_legado(arq):
+    warnings.warn("formato legado")
+    <span class="c"># programa CONTINUA</span>
+    converter(arq)</pre></div>
+<div><div class="rotulo">AFTER</div>
+<pre>if formato_legado(arq):
+<span class="x">    raise ValueError("formato legado")</span>
+    <span class="c"># programa PARA aqui</span></pre></div>
+</div>
+<p><code>warn</code>→<code>raise</code> transforma um aviso em erro fatal. Variações do mesmo
+problema: trocar o <em>tipo</em> da exceção (<code>RuntimeError</code>→<code>ValueError</code>
+muda quem a captura), mudar a mensagem (quebra teste e parsing de log), apertar ou afrouxar um
+<code>except</code>.</p>
+<div class="como">grep mental por <code>raise</code>, <code>warn</code>, <code>except</code>
+nos dois lados: mesmos tipos, mesmas condições, mesmas mensagens?</div>
+</div>
+
+<div class="caixa">
+<h3>A6 — Falsas mudanças: equivalências que parecem quebra <span class="badge ok">NÃO rejeitar</span></h3>
+<p>O item que protege na direção contrária — na rodada 1 matamos pares válidos por estes três
+padrões:</p>
+<div class="duo">
+<div><div class="rotulo">PARECE mudança…</div>
+<pre>if x &lt; 0:
+    return "neg"
+<span class="v">elif x == 0:</span>      <span class="c"># virou if</span>
+    return "zero"</pre></div>
+<div><div class="rotulo">…mas é equivalente</div>
+<pre>if x &lt; 0:
+    return "neg"
+<span class="v">if x == 0:</span>
+    return "zero"
+<span class="c"># só se chega à 2ª checagem se a 1ª
+# NÃO retornou — o elif era redundante</span></pre></div>
+</div>
+<div class="duo">
+<div><div class="rotulo">PARECE mudança…</div>
+<pre>def itens_validos(seq):
+    for s in seq:
+        if s is None:
+<span class="v">            return</span>   <span class="c"># era "pass" + break</span>
+        yield s</pre></div>
+<div><div class="rotulo">…mas é equivalente</div>
+<pre><span class="c"># dentro de um GENERATOR, "return" vazio
+# não devolve valor a ninguém: só encerra
+# a iteração (StopIteration), exatamente
+# como sair do loop e cair no fim</span></pre></div>
+</div>
+<div class="duo">
+<div><div class="rotulo">PARECE mudança…</div>
+<pre>if not valido(x):
+    raise ValueError(x)
+<span class="v">else:</span>             <span class="c"># else removido</span>
+    processar(x)</pre></div>
+<div><div class="rotulo">…mas é equivalente</div>
+<pre>if not valido(x):
+    raise ValueError(x)
+<span class="v">processar(x)</span>
+<span class="c"># depois de um raise/return, o else
+# é decorativo — dedentar é seguro</span></pre></div>
+</div>
+<div class="como">antes de cravar <code>muda_comportamento</code> em mudança de
+<em>fluxo de controle</em>, pergunte: o ramo anterior <strong>termina</strong> (return, raise,
+continue)? Se sim, elif→if, remoção de else e dedent são equivalentes. E <code>return</code>
+vazio em generator não é "retornar None para o chamador" — é só parar de iterar.</div>
+</div>
+
+<h2 id="eixoB">Eixo B — o after é uma boa aula? (eliminatório)</h2>
+<p>Pergunta-guia: <em>"se um modelo imitar exatamente este diff, ele aprende a resolver
+<strong>este</strong> smell — e só isso?"</em> Três sub-checagens, nesta ordem:
+<strong>(1)</strong> o before tem o smell rotulado de verdade? <strong>(2)</strong> a resolução
+passou do limiar (não é só mitigação)? <strong>(3)</strong> o diff ficou no escopo do smell?</p>
+
+<div class="caixa">
+<h3>R1 — Long Method → Extract Method</h3>
+<div class="duo">
+<div><div class="rotulo">RESOLVE <span class="badge ok">genuína</span></div>
+<pre>def importar(arq):
+<span class="v">    dados = _ler_e_validar(arq)</span>
+<span class="v">    regs  = _converter(dados)</span>
+<span class="v">    _gravar(regs)</span>
+<span class="c"># principal virou orquestração:
+# passos nomeados, 1 nível de abstração</span></pre></div>
+<div><div class="rotulo">SÓ MITIGA <span class="badge bad">lixo / after_nao_resolve</span></div>
+<pre>def importar(arq):
+    dados = _ler_e_validar(arq)   <span class="c"># extraiu 1 bloco…</span>
+<span class="x">    # --- converte registros ---</span>
+    regs = []
+    for d in dados: ...           <span class="c"># 20 linhas</span>
+<span class="x">    # --- grava no banco ---</span>
+    con = abrir(); ...            <span class="c"># 15 linhas</span>
+<span class="c"># …e o resto continua demarcado
+# por comentários-seção</span></pre></div>
+</div>
+<div class="alerta"><strong>Não puna o lado oposto:</strong> (a) extração que elimina um bloco
+<em>duplicado 2×+</em> é resolução material mesmo se a função continua comprida — eliminar
+duplicação é a motivação canônica de Extract Method; (b) não exija quebrar uma sequência coesa
+de algoritmo em pedacinhos: over-extraction também é defeito. Sinal do before legítimo:
+responsabilidades distintas identificáveis (seções comentadas, duplicação, fases
+preparar/processar/finalizar) — comprimento por boilerplate/aridade NÃO é Long Method.</div>
+</div>
+
+<div class="caixa">
+<h3>R2 — Long Parameter List → Parameter Object</h3>
+<div class="duo">
+<div><div class="rotulo">RESOLVE <span class="badge ok">genuína</span></div>
+<pre><span class="v">@dataclass
+class ExportConfig:
+    formato: str
+    compressao: str = "gzip"
+    incluir_meta: bool = True</span>
+
+def exportar(dados, cfg: ExportConfig):
+    arq = abrir(cfg.formato)      <span class="c"># acesso no
+    ...                           # ponto de uso</span></pre></div>
+<div><div class="rotulo">DISFARÇA <span class="badge bad">lixo</span></div>
+<pre>def exportar(dados, <span class="x">**kwargs</span>):
+<span class="x">    formato    = kwargs["formato"]</span>
+<span class="x">    compressao = kwargs["compressao"]</span>
+<span class="x">    incluir    = kwargs["incluir_meta"]</span>
+    ...
+<span class="c"># o smell não sumiu: foi escondido num
+# dict sem tipo. E o desempacotamento em
+# massa no topo denuncia bundle-sacola</span></pre></div>
+</div>
+<div class="alerta">Limiar: assinatura final <strong>≤5 parâmetros</strong> com objeto coeso
+<em>nomeado pelo domínio</em> (13→10 é mitigação). A <strong>definição do objeto deve aparecer
+no after</strong> (senão é A2). O sujeito/payload da função (ex.: <code>dados</code>) fica fora
+do objeto — agrupa-se configuração com configuração, contexto com contexto.</div>
+</div>
+
+<div class="caixa">
+<h3>R3 — Magic Numbers → Named Constant</h3>
+<div class="duo">
+<div><div class="rotulo">RESOLVE <span class="badge ok">genuína</span></div>
+<pre><span class="v">MIN_ANO_VALIDO = 1900
+MAX_ANO_VALIDO = 2030</span>
+
+def validar(ano):
+    if not (MIN_ANO_VALIDO &lt;= ano
+            &lt;= MAX_ANO_VALIDO):
+        raise ValueError(ano)
+<span class="c"># definição visível + as DUAS pontas
+# do mesmo conceito nomeadas juntas</span></pre></div>
+<div><div class="rotulo">PELA METADE <span class="badge bad">lixo / after_nao_resolve</span></div>
+<pre>PIVO_SECULO = 90
+
+def expandir(aa):
+    if aa &gt; PIVO_SECULO:
+<span class="x">        return 1900 + aa</span>
+<span class="x">    return 2000 + aa</span>
+<span class="c"># nomeou o pivô e deixou as bases 1900 e
+# 2000 — metade do MESMO conceito.
+# Resolução incoerente</span></pre></div>
+</div>
+<div class="alerta"><strong>O que NÃO é resíduo</strong> (não conte contra o after): literais
+<em>estruturais</em> — índice, passo, acumulador (<code>0</code>, <code>0.0</code>,
+<code>i + 1</code>, <code>range(len(xs) - 1)</code>) — e <em>idiomáticos</em> autoexplicativos
+(<code>date(ano, mes, 1)</code> = primeiro dia). Nomeá-los seria ruído. O diff válido de R3 é
+exclusivamente: +definições e trocas 1-para-1 literal→nome. Mudou assinatura, fluxo ou
+algoritmo junto? Escopo estourado.</div>
+</div>
+
+<div class="caixa">
+<h3>R4 — Deep Nesting → Guard Clauses</h3>
+<div class="duo">
+<div><div class="rotulo">RESOLVE <span class="badge ok">genuína</span></div>
+<pre>def enviar(msg, canal):
+<span class="v">    if canal is None or not canal.aberto:
+        return</span>
+<span class="v">    if not msg:
+        return</span>
+    for parte in msg.partes:
+<span class="v">        if not parte.valida:
+            continue</span>
+        canal.push(parte)
+<span class="c"># profundidade máx: 5 → 2; happy path
+# no nível mais raso</span></pre></div>
+<div><div class="rotulo">COSMÉTICO <span class="badge bad">lixo / after_nao_resolve</span></div>
+<pre>def enviar(msg, canal):
+    if canal is not None:
+        if canal.aberto:
+            if msg:
+                for parte in msg.partes:
+                    if parte.valida:
+                        canal.push(parte)
+<span class="x">    # antes havia um "else: return" aqui,
+    # que foi removido</span>
+<span class="c"># a pirâmide continua intacta:
+# profundidade máxima inalterada</span></pre></div>
+</div>
+<div class="alerta">Limiar objetivo: a <strong>profundidade máxima de indentação do caminho
+principal cai ≥1 nível</strong>. Conte! Técnica-alvo: inversão de condição + return/raise/continue
+cedo. Se o aninhamento sumiu porque um bloco virou função, a técnica é Extract Method (R1), não
+R4. E elif-ladder de despacho (<code>if tipo == "a": … elif tipo == "b": …</code>) não é deep
+nesting — é outro smell, não conte como before válido.</div>
+</div>
+
+<div class="caixa">
+<h3>R5 — Dead Code → Remove</h3>
+<div class="duo">
+<div><div class="rotulo">RESOLVE <span class="badge ok">genuína</span></div>
+<pre><span class="c"># BEFORE
+fig = plotar(dados)   # fig nunca é lida</span>
+
+<span class="c"># AFTER</span>
+<span class="v">plotar(dados)</span>
+<span class="c"># removeu SÓ o binding morto e manteve a
+# chamada — plotar() tem efeito colateral
+# (desenha); deletar a linha inteira
+# mudaria o comportamento</span></pre></div>
+<div><div class="rotulo">BUG DISFARÇADO <span class="badge bad">lixo / outro</span></div>
+<pre><span class="c"># BEFORE
+def total(itens):
+    soma = sum(i.preco for i in itens)
+    # soma nunca usada; função devolve None</span>
+
+<span class="c"># AFTER</span>
+def total(itens):
+    soma = sum(i.preco for i in itens)
+<span class="x">    return soma</span>
+<span class="c"># o "dead store" era SINTOMA de um return
+# esquecido. O commit consertou o bug —
+# muda o comportamento (None → número).
+# Não é Dead Code → Remove</span></pre></div>
+</div>
+<div class="alerta"><strong>Teste de intenção, sempre primeiro:</strong> o valor morto
+obviamente deveria ser retornado/propagado? Então é bug, não smell (foi 30% da nossa amostra
+R5). Limiar de resolução: diff = <em>exclusivamente remoções</em>, cobrindo o <strong>fecho
+transitivo</strong> — se remover <code>x</code> torna <code>y</code> morto também,
+<code>y</code> sai junto; deixar resíduo da mesma classe é resolução parcial.</div>
+</div>
+
+<h2 id="colinha">Colinha final — fluxo por par (~5 min)</h2>
+<table>
+<tr><th>Passo</th><th>O quê</th><th>Se falhar</th></tr>
+<tr><td>1</td><td>Ler na ordem: <code>def</code> → returns → nomes novos → corpo</td><td>—</td></tr>
+<tr><td>2</td><td><strong>Eixo A</strong> em voz alta: A1 assinatura · A2 símbolos · A3 curto-circuito · A4 early-return×tail · A5 exceções (A6: não rejeitar equivalências)</td><td><code>lixo / muda_comportamento</code> — fim, não debater B</td></tr>
+<tr><td>3</td><td><strong>B1:</strong> before tem o smell rotulado?</td><td><code>lixo / before_sem_smell</code> → <em>descartar</em></td></tr>
+<tr><td>4</td><td><strong>B2:</strong> passou do limiar do smell (tabela acima)?</td><td><code>lixo / after_nao_resolve</code> → <em>before vale: regenerar after</em></td></tr>
+<tr><td>5</td><td><strong>B3:</strong> diff só mexeu no smell?</td><td><code>lixo / outro</code> (escopo) → <em>before geralmente vale</em></td></tr>
+<tr><td>6</td><td>Veredito + justificativa escrita (1 frase concreta, inclusive nas genuínas) + salvage do before</td><td>—</td></tr>
+</table>
+<p class="sub"><code>incerto</code> é reservado para inverificabilidade (símbolo/efeito fora do
+recorte — A2). "Resolveu em parte" não é incerto, é lixo com before aproveitável. Persistiu o
+desacordo entre nós dois? → <code>lixo</code> conservador, com o dissenso registrado.</p>
+
+</main></body></html>
